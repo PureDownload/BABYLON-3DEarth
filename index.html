@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3DEarth</title>
+    <style>
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="container" style="height:100vh;width: 100vw;"></canvas>
+    <!-- 基础类库 -->
+    <script src="./lib/babylon.js"></script>
+    <script src="./lib/babylon.gui.min.js"></script>
+    <script type="module">
+        import { countryLine } from './js/countryPolygon.js'
+        import { starBackground } from './js/StarBg.js'
+        import { createEarthCloudImageMesh } from './js/Cloud.js'
+        import { earthGlow } from './js/EarthGlow.js'
+        import MarkAndLine from './js/MarkAndLine.js'
+        // 创建一个场景
+        let canvas;
+        let engine;
+        let scene;
+        const earthDiameter = 200; // 地球半径
+        
+        // 调用方法生成对应效果
+        createDefaultScene() // 创建场景
+        addEarth()
+        // +0.01是因为不加的话会刚好和球重合
+        countryLine(earthDiameter/2+0.01, scene)
+        // 星空背景
+        starBackground(scene)
+        // 添加云层
+        createEarthCloudImageMesh(scene, earthDiameter)
+        // 添加地球背景光环
+        // earthGlow(200, "texture/earth_glow_light.png", 0.78, scene)
+        // earthGlow(200, "texture/earth_glow.png", 0.78, scene)
+        const ml = new MarkAndLine(scene, earthDiameter/2+0.01)
+        ml.init()
+
+        // 创建一个基本场景
+        function createDefaultScene() {
+            canvas = document.getElementById("container");
+            engine = new BABYLON.Engine(canvas, true);
+            scene = new BABYLON.Scene(engine);
+            // 通用相机
+            var camera = new BABYLON.ArcRotateCamera(
+                "camera",
+                (3 * Math.PI) / 8,
+                (3 * Math.PI) / 8,
+                300,
+                new BABYLON.Vector3(0, 0, 0),
+                scene
+            );
+            // const camera = new BABYLON.ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 2, new BABYLON.Vector3(0, 0, 5), scene);
+            camera.attachControl(canvas, false);// 让摄像头控制画布，实现摄像头移动效果
+            /* 创建2个光源：HemisphericLight是半球形光源，PointLight是点光源 */
+            var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1000, 1000, 0), scene);
+            // var light2 = new BABYLON.PointLight("light2", new BABYLON.Vector3(0, 1, -1), scene);
+            scene.clearColor.set(0, 0, 0, 1); // 为了方便查看效果 修改场景背景颜色
+
+            // 渲染引擎启动定时循环，在定时循环中更新场景的每一帧
+            engine.runRenderLoop(function () {
+                scene.render();
+                if(ml) {
+                    ml.updateAnimation()
+                }
+            });
+        }
+        // 创建地球
+        function addEarth() {
+            // 创建一个球当做地球容器
+            const earth = new BABYLON.MeshBuilder.CreateSphere(
+                "Earth",
+                {
+                    diameter: earthDiameter,// 地球大小
+                },
+                scene
+            );
+            // 设置地球的材质
+            const earthMaterial = new BABYLON.StandardMaterial("EarthMaterial", scene);
+            earthMaterial.diffuseTexture = new BABYLON.Texture(
+                "texture/dqn3.jpeg",
+                scene
+            );
+            earthMaterial.emissiveColor = BABYLON.Color3.Teal();
+            earth.material = earthMaterial;
+            earth.rotation.x = Math.PI;
+            // y轴有偏移 1.57为偏移量
+            earth.rotation.y = Math.PI;
+        }
+
+    </script>
+</body>
+
+</html>
